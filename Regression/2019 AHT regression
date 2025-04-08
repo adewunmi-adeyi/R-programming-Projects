@@ -1,1 +1,245 @@
+---
+title: "2019 AHT-Regression"
+author: "Adewunmi Adeyi"
+date: "2/20/2020"
+output: 
+    html_document
+---
+
+## Multiple Correlation Analysis {.tabset}
+
+Correlation is a statistical measure that suggests the level of linear dependence between AHT and rest of the workforce KPI that occur in pair 
+within same time event. Correlation can take values between -1 to +1. 
+
+  - If we observe for every instance where AHT increases, the rest of the measured KPI also increases along with it, then there is a high positive correlation between them and therefore the correlation between them will be closer to 1; 
+  
+  - while opposite is true for an inverse relationship, in which case, the correlation between the variables will be close to -1 and a value closer to 0 suggests a weak relationship between the variables (-0.2 < X < 0.2).
+  
+Statistic Method: Pearson's Correlation coefficient 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, error = FALSE)
+library(tidyverse)
+library(PerformanceAnalytics)
+library(Hmisc)
+library(corrplot)
+library(cowplot)
+library(DT)
+
+c3<- read.csv("C3_forecast.csv", header= T, stringsAsFactors = F)
+c3_data<- c3
+irops<- c3 %>% select(1,13)
+irops$Date<- as.Date(irops$Date,"%m/%d/%Y")
+
+c3_data$NCO <- as.numeric(c3_data$NCO)
+c3_data$NCH <- as.numeric(c3_data$NCH)
+c3_data$ASA <- as.numeric(c3_data$ASA)
+c3_data$AHT <- as.numeric(c3_data$AHT)
+c3_data$ATT <- as.numeric(c3_data$ATT)
+c3_data$ACW <- as.numeric(c3_data$ACW)
+c3_data$Hold <- as.numeric(c3_data$Hold)
+c3_data$Irops <- as.numeric(c3_data$Irops)
+
+c3_na<-c3_data %>%select(-1) %>%   na.omit(c3_data)
+
+```
+
+### C3
+
+**C3 KPI Correlation Chart**
+
+Firstly, We pivot all the vaiables and compute correlation score by pairing the corresponding attributes individually.
+
+
+```{r}
+chart.Correlation(c3_na, histogram=F,method = c("pearson"), pch=15)
+```
+
+**C3 AHT Regression**
+
+Regressions are commonly used in the machine learning field to predict continuous value based on Historic event. Regression task can predict the value of a dependent variable based on a set of independent variables. 
+
+We fit a multiple regression model by using more than one independent variables against one preditor(AHT) however Variables selection is an important step to fit an accurate model. By utilizing the stepwise function will help to determine the most correlated attribute within our data automatically.
+
+  - Stepwise Method was used to determine/select the best predictor within the dataset suitable to fit a regression model
+  
+Per Stepwise function we determine AHT shows a strong correlation with the following attributes:
+
+ - AHT ~ ATT + Hold + ACW + Aux.
+
+so we fit a linear model with the above identified attributes. 
+
+```{r}
+#stepwise function
+#model.c3 = lm(AHT ~ 1,data= c3_na) 
+#model.c3.full = lm(AHT ~ .,data=c3_na, method = "pearson")
+#step_wise<-step(model.c3,scope = list(upper=model.c3.full),direction="both", data=c3_na) 
+c3_model<-lm(AHT ~ ATT + Hold + ACW + Aux., data = c3_na)
+
+summary(c3_model)
+
+```
+
+**Summary Conclusion** Per summary of the model; it can be seen that p-value of the F-statistic is < 2.2e-16, which is highly significant. This means that, at least, one of the predictor variables is significantly related to the outcome variable. 
+Residual Standard error(RSE): The lower the RSE, the more accurate the model (on the data in hand).
+
+R-Squared: 99% of observed values were used to create the model.. 
+
+**Additional Information**
+
+Coefficients and P-value: Per the P-value shows ATT, Hold and ACW have a significant impact on AHT within the 2019 C3 dataset
+
+
+```{r}
+datatable(summary(c3_model)$coefficients)
+
+```
+
+
+
+### Teleperformance
+
+**Teleperformance KPI Correlation Chart**
+
+Firstly, We pivot all the vaiables and compute correlation score by pairing the corresponding attributes individually.
+
+
+```{r warning= F, echo= F, message= F}
+tp<- read.csv("TP_forecast.csv", header = T, stringsAsFactors = F)
+tp$NCO <- as.numeric(tp$NCO)
+tp$NCH <- as.numeric(tp$NCH)
+tp$Aban..<- as.numeric(tp$Aban..)
+tp$SL..<-as.numeric(tp$SL..)
+tp$ASA<- as.numeric(tp$ASA)
+tp$AHT<- as.numeric(tp$AHT)
+tp$Occ.<- as.numeric(tp$Occ.)
+tp$Date<- as.Date(tp$Date,"%m/%d/%Y")
+
+
+
+tp_data<- merge(tp, irops, by =c("Date"), all.X = TRUE)
+tp_data$Irops<-as.numeric(tp_data$Irops)
+
+
+tp_data<-tp_data %>%  select(-1)
+
+
+chart.Correlation(tp_data, histogram=F, pch=19, method = "pearson")
+
+
+#stepwise
+#model.tp = lm(AHT ~ 1,data= tp_data)
+#model.tp.full = lm(AHT ~ .,data=tp_data, method = "pearson")
+    
+#tp_step<-step(model.tp,scope = list(upper=model.tp.full), direction="both", data=tp_na)    
+
+```
+
+
+**Teleperformance AHT Regression summary**
+
+We fit a multiple regression model by using more than one independent variables against one preditor(AHT) however Variables selection is an important step to fit an accurate model. By utilizing the stepwise function will help to determine the most correlated attribute within our data automatically.
+
+
+Model calculation: $$\beta_{0} +\beta_{1}x_{i}+ \beta2 x_{2} + ... \beta_{k}x_{k} + e $$, where b1 and b2 are coefficients that define the slope of the line and a is the intercept (i.e., the value of Y when X = 0).
+
+
+  - Stepwise Method was used to determine/select the best predictor within the dataset suitable to fit a regression model
+  
+Per Stepwise function we determine AHT shows a strong correlation with the following attributes:
+
+ -AHT ~ NCO + SL.. + Occ..
+
+so we fit a linear model with the above identified attributes. 
+
+```{r}
+tp_model<-lm(AHT ~ NCO + SL.. + Occ., data = tp_data)
+
+summary(tp_model)
+
+```
+
+**Summary Conclusion:** P-value of the F-statistic is < 2.2e-16, which is highly significant. This means that, at least, one of the predictor variables is significantly related to the outcome variable. 
+
+R-Squared: 33% of observed values were used to create the model, which is very low for predicting AHT.  More data is needed to increase Model performance 
+
+
+**Additional Information:**
+
+Coefficients and P-value: Per the P-value shows NCO, SL and Occ. have a significant impact on AHT within the 2019 TP dataset
+
+
+```{r}
+datatable(summary(tp_model)$coefficients)
+```
+
+
+### CCI- Durban
+
+**CCI-Durban AHT Regression summary**
+
+We fit a multiple regression model by using more than one independent variables against one preditor(AHT) however Variables selection is an important step to fit an accurate model. By utilizing the stepwise function will help to determine the most correlated attribute within our data automatically.
+
+
+Model calculation: $$\beta_{0} +\beta_{1}x_{i}+ \beta2 x_{2} + ... \beta_{k}x_{k} + e $$, where b1 and b2 are coefficients that define the slope of the line and a is the intercept (i.e., the value of Y when X = 0).
+
+
+  - Stepwise Method was used to determine/select the best predictor within the dataset suitable to fit a regression model
+  
+Per Stepwise function we determine AHT shows a strong correlation with the following attributes:
+
+ -AHT ~ ATT + Hold + ACW
+
+so we fit a linear model with the above identified attributes. 
+
+
+```{r warning= F, echo= F, message= F} 
+cci<-read.csv("cci_forecast.csv", header = T, stringsAsFactors = F)
+cci$NCO <- as.numeric(cci$NCO) 
+cci$NCH <- as.numeric(cci$NCH)
+cci$ACW<-as.numeric(cci$ACW)
+cci$ATT<- as.numeric(cci$ATT)
+cci$Abandon..<- as.numeric(cci$Abandon..)
+cci$SL.<-as.numeric(cci$SL.)
+cci$ASA<- as.numeric(cci$ASA)
+cci$AHT<- as.numeric(cci$AHT)
+cci$Date<- as.Date(cci$Date,"%m/%d/%Y")
+
+
+
+#dATAFRAME MANUPULATIONjoining data frame with irops columns
+cci_data<- merge(cci, irops, by=c("Date"), all.X = TRUE)
+cci_data$Irops<-as.numeric(cci_data$Irops)
+
+ 
+cci_data<- cci_data %>% select(-1,-3)
+chart.Correlation(cci_data, histogram=F, pch=19, method = "pearson") 
+cci_na<-cci_data %>%  na.omit(tp_data) 
+
+# stepwise
+#model.cci = lm(AHT ~ 1,data= cci_na)
+#model.cci.full = lm(AHT ~ .,data=cci_na, method = "spearman") 
+#step(model.cci,scope = list(upper=model.cci.full), direction="both", data=cci_na)  
+
+
+cci_model<-lm(AHT ~ ATT + Hold + ACW, data = cci_na)
+
+summary(cci_model)
+#anova(cci_model)
+
+```
+
+**Summary Conclusion:** P-value of the F-statistic is < 2.2e-16, which is highly significant. This means that, at least, one of the predictor variables is significantly related to the outcome variable. 
+
+R-Squared: 98% of observed values were used to create the model, which is good for predicting AHT.  
+
+**Additional Information: **
+
+Coefficients and P-value: Per the P-value shows ATT,and Hold have a significant impact on AHT within the 2019 CCI-Durban dataset
+
+```{r}
+datatable(summary(cci_model)$coefficients)
+```
+
 
