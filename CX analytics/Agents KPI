@@ -1,1 +1,52 @@
+---
+title: "Agents Attitude"
+author: "Adewunmi Adeyi"
+date: "3/6/2020"
+output: html_document
+---
+
+```{r setup, include= FALSE, echo= FALSE, warning= FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, echo = FALSE)
+
+library(tidyverse)
+library(stringr)
+library(DT)
+survey<- read.csv("comments.csv", header = T, stringsAsFactors = T)
+survey$CCDate <- as.Date(survey$CCDate, "%m/%d/%Y" )
+
+
+survey<- survey %>% mutate(gsat_response=ifelse(Q2..How.satisfied.were.you.with.your.most.recent.experience.speaking.with.one.of.our.agents.=="Yes", 1,0), FCR_response=ifelse(Q1..Thanks.for.calling.us.on...e...Field.CCDate...Did.we.resolve.your.issue.=="Yes",1,0)) %>% rename(AgentID=CCAgent)
+ 
+survey_response<- survey %>% group_by(Month, AgentID) %>% summarize('Total Response'= n(), 'FCR score'= round(mean(FCR_response)*100,1), 'GSAT score'=round(mean(gsat_response)*100,1))
+survey$Q4..How.was.your.issue.not.resolved.<-tolower(survey$Q4..How.was.your.issue.not.resolved.)
+
+text_count <- survey %>% select(Month, CCDate,AgentID , Con.Id.Site, Q1..Thanks.for.calling.us.on...e...Field.CCDate...Did.we.resolve.your.issue., Q2..How.satisfied.were.you.with.your.most.recent.experience.speaking.with.one.of.our.agents.,Con.Id.Site,  Q4..How.was.your.issue.not.resolved.) %>% 
+                        mutate("detect" =ifelse(str_detect(Q4..How.was.your.issue.not.resolved., c("rude|attitude|help| 'not helpful'")),1,0)) %>% filter(detect ==1)
+
+text_count<-text_count %>% rename(Date= CCDate,FCR =  Q1..Thanks.for.calling.us.on...e...Field.CCDate...Did.we.resolve.your.issue.,GSAT= Q2..How.satisfied.were.you.with.your.most.recent.experience.speaking.with.one.of.our.agents., Comments= Q4..How.was.your.issue.not.resolved., Site= Con.Id.Site)
+
+
+
+```
+
+### Agents KPI score (FCR and GSAT)
+
+```{r warning=FALSE, echo=FALSE}
+
+datatable(survey_response,rownames = FALSE, filter = 'top',options = list(pageLength= 5, dom = 'Bfrtip',buttons = c('copy', 'csv', 'excel', 'pdf')))
+
+```
+
+
+### Guest comments towards Agent's attitude and behaviour
+
+Target Keywords: Rude, Not helpful, and attitude- Filtered by GSAT "No" response.
+
+```{r}
+
+datatable(text_count[,-8],rownames = FALSE, filter = 'top',options = list(pageLength= 5, dom = 'Bfrtip',buttons = c('copy', 'csv', 'excel', 'pdf')))
+
+```
+
+
 
