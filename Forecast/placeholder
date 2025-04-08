@@ -1,1 +1,127 @@
+---
+title: "KPI correlations diagnostics"
+author: "Adewunmi Adeyi"
+date: "2/20/2020"
+output: html_document
+---
+## AHT vs Irops relationship {.tabset}
+
+To determine the relationship between AHT and Irops at a given period of time(2019), we created a simple linear regression to know what 1 Irops represents in AHT.
+
+Simple linear calculation: $$Y = \beta_{0} +\beta_{1}x $$, where b1 and b2 are coefficients that define the slope of the line and a is the intercept (i.e., the value of Y when X = 0).
+
+
+## libraries invoked
+```{r setup, include=FALSE, warning= FALSE, echo= FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+library(tidyverse)
+library(PerformanceAnalytics)
+library(Hmisc)
+library(corrplot)
+library(cowplot)
+library(DT)
+
+c3<- read.csv("C3_forecast.csv", header= T, stringsAsFactors = F)
+c3_data<- c3
+irops<- c3 %>% select(1,13)
+irops$Date<- as.Date(irops$Date,"%m/%d/%Y")
+c3_data$Irops <- as.numeric(c3_data$Irops)
+
+c3_na<-c3_data %>%select(-1) %>%   na.omit(c3_data) 
+
+```
+
+### C3
+
+To determine the relationship between AHT and Irops at a given period of time(2019), we created a simple linear regression to know what 1 Irops represents in AHT.
+
+- Plot 
+
+C3 AHT vs Irops plot 
+
+```{r}
+
+c3_irops<-lm(AHT ~ Irops, data = c3_data)
+
+
+ggplot(c3_na, aes(Irops, AHT)) +
+  geom_point() +
+  stat_smooth(method = lm)
+```
+
+**Model Summary**
+
+```{r}
+
+summary(c3_irops)
+
+
+```
+**Summary Conclusion:**  Per the linear regression summary, 1 Irops means 492 sec of AHT (Inetersect of the best fit line on y axis). 
+**Additional Information** Per model P-value indicates Irops contributes or impacts significantly to AHT however R-square is 17%; meaning 17% of value within the dataset were used for model (due to zero values in numbers irops reported)
+
+```{r}
+
+summary(c3_irops)$coefficients
+#par(mfrow=c(2,2))
+#plot(c3_irops)
+#hist(residuals(c3_irops))
+
+```
+
+
+**AHT Predication**
+- Given the Intercept and coefficient, we can compute the prediction to AHT.
+
+```{r}
+
+new<-data.frame(Irops=as.numeric(c(1:50)))
+aht_predict<-cbind(new, AHT=round(predict(c3_irops, newdata = new),0))
+datatable(aht_predict, rownames = F, extensions = 'Buttons', options = list(columnDefs = list(list(className = 'dt-center')) , dom = 'Bfrtip',buttons = c('copy', 'csv', 'excel', 'pdf')))
+
+```
+
+
+### Teleperformance
+To determine the relationship between AHT and Irops at a given period of time(2019), we created a simple linear regression to know what 1 Irops represents in AHT.
+
+- Plot 
+
+Teleperformance AHT vs Irops plot 
+
+```{r warning= F, echo= F, message= F}
+tp<- read.csv("TP_forecast.csv", header = T, stringsAsFactors = F)
+tp$Date<- as.Date(tp$Date,"%m/%d/%Y")
+
+
+
+tp_data<- merge(tp, irops, by =c("Date"), all.X = TRUE)
+tp_data$Irops<-as.numeric(tp_data$Irops)
+
+ggplot(tp_data, aes(Irops, AHT)) +
+  geom_point() +
+  stat_smooth(method = lm)
+
+
+
+tp_irops<-lm(AHT ~ Irops, data = tp_data)
+```
+
+**Model Summary**
+
+```{r}
+summary(tp_irops)
+
+```
+
+
+**Summary Conclusion:**  Per the linear regression summary, 1 Irops means 477 sec of AHT (Inetersect of the best fit line on y axis). 
+**Additional Information** Per model P-value indicates Irops contributes or impacts significantly to AHT however R-square is 5%; meaning more data is need to determine model prediction accurancy
+
+```{r}
+
+datatable(summary(tp_irops)$coefficient)
+
+```
+
 
